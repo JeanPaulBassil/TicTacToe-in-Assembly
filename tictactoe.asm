@@ -6,36 +6,39 @@ main:
 	lw $t0, displayAddress # loading the bitmap display adress
 	li $t4, 0xffffff # white
 	
-	li $t5, 0
+	li $t5, 0 # black color
 	
-	jal fillWhite
-	lw $t0, displayAddress
-	li $v0, 1       # Set syscall code for printing integer (1)
-    	li $a0, 2       # Load the integer value 1 into register $a0
-    	syscall         # Execute the syscall	
-    	lw $t0, displayAddress
-    	jal fillGrid
-    	li $v0, 1       # Set syscall code for printing integer (1)
-    	li $a0, 3       # Load the integer value 1 into register $a0
-    	syscall         # Execute the syscall	
+	jal fillWhite # fill the screen with white
+	lw $t0, displayAddress # load the value for the displayAdress (MIPS bitmapDisplay)
+	
+    	jal fillGrid # draw the 3x3 grid
+ 
     	li $t2, 0x31    # ASCII value for '1' in hex
     	li $t3, 0x32    # ASCII value for '2' in hex
-    	li $t4, 0x33
+    	li $t4, 0x33	# ect...
     	li $t5, 0x34
     	li $t6, 0x35
     	li $t7, 0x36
     	li $s0, 0x37
     	li $s1, 0x38
     	li $s2, 0x39
+    	li $s3, 9
  gameLoop:   	
-    	jal waitForKey
+ 	blez $s3, Exit # check if 9 turns have passed or not
+    	jal waitForKey # wait for user input
     	
-    	move $t1, $v0
+    	move $t1, $v0 # set the input key in t1
     	
+    	move $a0, $s3 # send the number of turns left to check turn as an argument
+    	
+    	jal checkTurn
+    	
+    	move $a1, $v1 # set the return value of checkTurn as an argument for the branch methods below
     	
     	
     	
     	# Check if the value in $t1 matches any of the numbers
+    	# then branch and draw for the specific grid
     	beq $t1, $t2, handle_num7
     	beq $t1, $t3, handle_num8
     	beq $t1, $t4, handle_num9
@@ -46,57 +49,98 @@ main:
     	beq $t1, $s1, handle_num2
     	beq $t1, $s2, handle_num3
     	
-	j Exit
+	j gameLoop # if invalid character, just skip it and wait for another input
 	
+checkTurn: # use modulo to check if X turn or O turn (1 for X, 0 for O)
+	addi $sp, $sp, -16 # saving used values to stack
+	sw $t0, 0($sp)
+	sw $t1, 4($sp)
+	sw $t3, 8($sp)
+	sw $t4, 12($sp)
 	
-handle_num1:
-	lw $s7, displayAddress
-	li $t8, 0
-	addi $a0, $zero, 656
-	jal drawX
-	j gameLoop
+	move $t0, $a0 # sending the modulo output as a return value 
+	addi $t1, $0, 2
+	div $t0, $t1
+	mflo $t3
+	mult $t3, $t1
+	mflo $t4
+	sub $v1, $t0, $t4
+	
+	lw $t4, 12($sp)	# loading back the initial register values from the stack
+	lw $t3, 8($sp)
+	lw $t1, 4($sp)
+	lw $t0, 0($sp)
+	addi $sp, $sp, 16	
+	jr $ra
+handle_num1: # handling for each input value (1 means first box aka at index 0 0, so when button 7 clicks the handle 1 is called
+
+	lw $s7, displayAddress # every handle method here does the same thing
+	subi $s3, $s3, 1 # load the display adress
+	addi $a0, $zero, 656 # Set the argument value to approximately the center of the grid chosen so when we call drawX or O
+	beqz $a1, drawO      # they get drawn in the correct box, now if the turn is 0 we draw 0 otherwise we draw X since the number is
+	bnez $a1, drawX      # initially 9 and we start with X 
+	
+
 	
 handle_num2:
 	lw $s7, displayAddress
-	li $t8, 0
+	subi $s3, $s3, 1
 	addi $a0, $0, 572
-	jal drawO
-	j gameLoop
+	beqz $a1, drawO
+	bnez $a1, drawX
+	
+
 handle_num3:
 	lw $s7, displayAddress
-	li $t8, 0
-	sw $t8, 616($s7)
-	j gameLoop
+	subi $s3, $s3, 1
+	addi $a0, $0, 616
+	beqz $a1, drawO
+	bnez $a1, drawX
+	
+
 handle_num4:
 	lw $s7, displayAddress
-	li $t8, 0
-	sw $t8, 1936($s7)
-	j gameLoop	
+	subi $s3, $s3, 1
+	addi $a0, $0, 1936
+	beqz $a1, drawO
+	bnez $a1, drawX
+
 handle_num5:
 	lw $s7, displayAddress
-	li $t8, 0
-	sw $t8, 1980($s7)
-	j gameLoop
+	subi $s3, $s3, 1
+	addi $a0, $0, 1980
+	beqz $a1, drawO
+	bnez $a1, drawX
+
 handle_num6:
 	lw $s7, displayAddress
-	li $t8, 0
-	sw $t8, 2024($s7)
-	j gameLoop
+	subi $s3, $s3, 1
+	addi $a0, $0, 2024
+	beqz $a1, drawO
+	bnez $a1, drawX
+	
+
 handle_num7:
 	lw $s7, displayAddress
-	li $t8, 0
-	sw $t8, 3344($s7)
-	j gameLoop	
+	subi $s3, $s3, 1
+	addi $a0, $0, 3344
+	beqz $a1, drawO
+	bnez $a1, drawX
+
 handle_num8:
 	lw $s7, displayAddress
-	li $t8, 0
-	sw $t8, 3388($s7)
-	j gameLoop
+	subi $s3, $s3, 1
+	addi $a0, $0, 3388
+	beqz $a1, drawO
+	bnez $a1, drawX
+
 handle_num9:
 	lw $s7, displayAddress
-	li $t8, 0
-	sw $t8, 3432($s7)
-	j gameLoop
+	subi $s3, $s3, 1
+	addi $a0, $0, 3432
+	beqz $a1, drawO
+	bnez $a1, drawX
+
 fillWhite:
     # Save registers to the stack
     addiu $sp, $sp, -24 # Allocate space on the stack
@@ -106,7 +150,7 @@ fillWhite:
     sw $t4, 8($sp)      # Save $t4
     sw $t5, 4($sp)      # Save $t5
 
-    sw $t4, 0($t0)
+    sw $t4, 0($t0)      # loop to fill all the screen white
     addiu $t0, $t0, 4
     addiu $t2, $t2, 1
     li $t5, 1024
@@ -123,7 +167,7 @@ fillWhite:
     jr $ra
 
 	
-fillGrid:
+fillGrid: # method to fill the grid
     # Save registers to the stack
     
     addi $sp, $sp, -24   # Allocate space on the stack
@@ -133,24 +177,13 @@ fillGrid:
     sw $t3, 8($sp)       # Save $t3
     sw $t7, 4($sp)       # Save $t7
     
-
     move $t3, $zero
     addi $t0, $t0, 1280
-    
-
-    jal fillRows
-    li $v0, 1           # Set syscall code for printing integer (1)
-    li $a0, 4           # Load the integer value 1 into register $a0
-    syscall             # Execute the syscall
-    
+    jal fillRows # calls method to fill the rows
     move $t2, $zero
-    
     li $t2, 0
-    
-    #sw $fp, 20($sp)
-    jal fillColumns 
-    #lw $fp, 20($sp)
-	
+    jal fillColumns  # calls method to fill the columns
+
     # Restore registers from the stack
     lw $t7, 4($sp)      # Restore $t7
     lw $t3, 8($sp)      # Restore $t3
@@ -158,17 +191,16 @@ fillGrid:
     lw $t0, 16($sp)     # Restore $t0
     lw $ra, 20($sp)     # Restore return address
     addi $sp, $sp, 24   # Deallocate space on the stack
-    li $v0, 1           # Set syscall code for printing integer (1)
-    li $a0, 5           # Load the integer value 1 into register $a0
-    syscall             # Execute the syscall
+
 	
     jr $ra
     
-drawX:
-	addi $sp, $sp, -12
+drawX: # method to draw the X shape
+	addi $sp, $sp, -16
 	sw $t1, 0($sp)
 	sw $t2, 4($sp)
 	sw $t0, 8($sp)
+	sw $t8, 12($sp)
 	
 	
 	
@@ -195,17 +227,19 @@ secondDiag:
 	addi $t1, $t1, 124
 	bnez $t0 secondDiag
 	
+	lw $t8, 12($sp)
 	lw $t0, 8($sp)
 	lw $t2, 4($sp)
 	lw $t1, 0($sp)
-	addi $sp, $sp, 12
-	jr $ra
+	addi $sp, $sp, 16
+	j gameLoop
 	
-drawO:
-	addi $sp, $sp, -12
+drawO: # method to draw the O shape
+	addi $sp, $sp, -16
 	sw $t1, 0($sp)
 	sw $t2, 4($sp)
 	sw $t0, 8($sp)
+	sw $t8, 12($sp)
 	
 	lw $t1, displayAddress
 	li $t8, 0x880808
@@ -226,13 +260,13 @@ drawO:
 	sw $t8, 260($t1)
 	sw $t8, 132($t1)
 	
+	lw $t8, 12($sp)
 	lw $t0, 8($sp)
 	lw $t2, 4($sp)
 	lw $t1, 0($sp)
-	addi $sp, $sp, 12
-	jr $ra
-waitForKey:
-
+	addi $sp, $sp, 16
+	j gameLoop
+waitForKey: # method to wait for the user Input
 
     lw $t0, 0xffff0000        # Load Receiver Control register into $t0
     andi $t0, $t0, 0x1        # Isolate Ready bit (bit 0)
@@ -244,7 +278,7 @@ waitForKey:
 
     jr $ra
 	
-fillRows:
+fillRows: # method to fill the grid rows
     # Save registers to the stack
     addi $sp, $sp, -20  # Allocate space on the stack
     sw $ra, 0($sp)      # Save return address
@@ -276,7 +310,7 @@ secondRowLoop:
 
     jr $ra
 
-fillColumns:
+fillColumns: # method to fill the columns
     # Save registers to the stack
     lw $t0, displayAddress
     addiu $sp, $sp, -24  # Allocate space on the stack
